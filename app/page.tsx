@@ -1,10 +1,25 @@
+// app/page.tsx
 "use client";
 
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth"; // Your authentication hook
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ConnectButton } from "@/components/ConnectButton";
 
 export default function HomePage() {
+  const { isAuthenticated } = useAuth(); // Get authentication status
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push("/signup"); // Redirect to sign-up if not authenticated
+    }
+  }, [isAuthenticated, router]);
+
+  // Render nothing while checking authentication
+  if (!isAuthenticated) return null;
+
   return (
     <main className="min-h-screen bg-gray-900 text-white">
       {/* Navbar */}
@@ -17,7 +32,6 @@ export default function HomePage() {
           <Link href="/vote" className="hover:text-blue-400">Vote</Link>
           <Link href="/results" className="hover:text-blue-400">Results</Link>
         </div>
-        <ConnectButton />
       </nav>
 
       {/* Main Content */}

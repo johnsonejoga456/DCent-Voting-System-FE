@@ -4,17 +4,17 @@ import type React from "react"
 
 import { useAuth } from "@/hooks/useAuth"
 import { useRouter } from "next/navigation"
-import { User, Mail, Lock, ArrowRight } from "lucide-react"
+import { LogIn, Mail, Lock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
-export default function SignUpForm() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" })
-  const { signup } = useAuth()
+export default function SignInForm() {
+  const [form, setForm] = useState({ email: "", password: "" })
+  const { login } = useAuth()
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await signup(form.name, form.email, form.password)
+    await login(form.email, form.password)
     router.push("/dashboard")
   }
 
@@ -31,34 +31,17 @@ export default function SignUpForm() {
         {/* Header */}
         <div className="space-y-1 text-center pb-8 pt-8 px-6">
           <div className="mx-auto w-12 h-12 bg-gradient-to-r from-orange-500 to-pink-500 rounded-xl flex items-center justify-center mb-4">
-            <User className="w-6 h-6 text-white" />
+            <LogIn className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">
-            Create Account
+            Welcome Back
           </h1>
+          <p className="text-gray-600">Sign in to continue your journey</p>
         </div>
 
         {/* Content */}
         <div className="space-y-6 px-6 pb-8">
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-gray-700 block">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  className="w-full pl-10 h-12 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 focus:outline-none rounded-xl bg-white transition-colors"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-gray-700 block">
                 Email Address
@@ -86,7 +69,7 @@ export default function SignUpForm() {
                 <input
                   id="password"
                   type="password"
-                  placeholder="Create a strong password"
+                  placeholder="Enter your password"
                   className="w-full pl-10 h-12 border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-500 focus:outline-none rounded-xl bg-white transition-colors"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -95,11 +78,18 @@ export default function SignUpForm() {
               </div>
             </div>
 
+            {/* Forgot Password Link */}
+            <div className="flex justify-end">
+              <Link href="/forgot-password" className="text-sm text-orange-600 hover:text-orange-500 transition-colors">
+                Forgot your password?
+              </Link>
+            </div>
+
             <button
               type="submit"
-              className="w-full h-12 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg shadow-orange-500/25 flex items-center justify-center"
+              className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg shadow-blue-500/25 flex items-center justify-center"
             >
-              Create Account
+              Sign In
               <ArrowRight className="ml-2 w-4 h-4" />
             </button>
           </form>
@@ -142,9 +132,9 @@ export default function SignUpForm() {
           </div>
 
           <p className="text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/signin" className="font-medium text-orange-600 hover:text-orange-500 transition-colors">
-              Sign in here
+            Don't have an account?{" "}
+            <Link href="/signup" className="font-medium text-orange-600 hover:text-orange-500 transition-colors">
+              Sign up here
             </Link>
           </p>
         </div>
