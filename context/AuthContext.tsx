@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  googleLogin: (idToken: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,8 +34,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => setUser(null);
 
+
+
+  const googleLogin = async (idToken: string) => {
+  // Mock call for now:
+  console.log("Google ID Token:", idToken);
+
+  // Later, you will:
+  // await fetch("/api/auth/google", { method: "POST", body: JSON.stringify({ idToken }), ... })
+  
+  await new Promise((res) => setTimeout(res, 1000));
+  setUser({ name: "Google User", email: "googleuser@example.com" });
+};
+
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: user !== null, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: user !== null, login, signup, logout, googleLogin }}>
       {children}
     </AuthContext.Provider>
   );
