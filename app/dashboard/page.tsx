@@ -4,7 +4,7 @@ import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardPage() {
-  useProtectedRoute(); // Redirects to "/" if not authenticated
+  useProtectedRoute();
 
   const { user, logout } = useAuth();
 

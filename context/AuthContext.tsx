@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 interface User {
   id: string;
@@ -11,6 +11,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
@@ -21,38 +22,76 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Hydrate user on refresh
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("https://api.dvs.dyung.me/users", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+
+        console.log("Hydrate Response:", data);
+
+        if (res.ok && data.status === 200 && data.data) {
+          setUser({
+            id: data.data.id,
+            username: data.data.username,
+            email: data.data.email,
+          });
+        } else {
+          console.error("Hydrate failed:", data.message || "Unknown error");
+          localStorage.removeItem("access_token");
+        }
+      } catch (error) {
+        console.error("Hydrate user error:", error);
+        localStorage.removeItem("access_token");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const login = async (email: string, password: string) => {
     try {
-        const res = await fetch("https://api.dvs.dyung.me/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-        });
+      const res = await fetch("https://api.dvs.dyung.me/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-        const data = await res.json();
-        console.log("Login Response:", data);
+      const data = await res.json();
+      if (!res.ok || !data.data || !data.data.access_token) {
+        throw new Error(data.message || "Login failed");
+      }
 
-        if (data.status === 0) {
-            const { user, access_token } = data.data;
+      const { user, access_token } = data.data;
 
-            // Store token in localStorage
-            localStorage.setItem("token", access_token);
+      setUser({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      });
 
-            // Update user context
-            setUser({
-                id: user.id,
-                username: user.username,
-                email: user.email,
-            });
-        } else {
-            throw new Error(data.message || "Login failed. Please check your credentials.");
-        }
+      localStorage.setItem("access_token", access_token);
     } catch (error) {
-        console.error("Login Error:", error);
-        throw error;
+      console.error("Login error:", error);
+      throw error;
     }
-};
+  };
 
   const signup = async (username: string, email: string, password: string) => {
     try {
@@ -65,7 +104,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const data = await res.json();
       console.log("Signup Response:", data);
 
-      if (data.status === 0) {
+      if (res.ok && data.status === 200 && data.data) {
         setUser({
           id: data.data.user.id,
           username: data.data.user.username,
@@ -80,7 +119,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => setUser(null);
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("access_token");
+  };
 
   const googleLogin = async (idToken: string) => {
     console.log("Google ID Token:", idToken);
@@ -96,7 +138,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: user !== null,
+        isAuthenticated: !!user,
+        isLoading,
         login,
         signup,
         logout,
@@ -110,7 +153,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
-  if (!context)
-    throw new Error("useAuthContext must be used within AuthProvider");
+  if (!context) throw new Error("useAuthContext must be used within AuthProvider");
   return context;
 };
