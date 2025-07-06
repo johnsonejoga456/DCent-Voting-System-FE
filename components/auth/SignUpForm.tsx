@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { User, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import GoogleLoginButton from "./GoogleLoginButton";
+import ConnectWalletButton from "./ConnectWalletButton";
 
 export default function SignUpForm() {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -128,8 +129,12 @@ export default function SignUpForm() {
             </div>
           </div>
 
+          { /* Google Login Button */ }
           <GoogleLoginButton />
 
+          { /* Connect Wallet Button */ }
+          <ConnectWalletButton />
+          
           <p className="text-center text-sm text-gray-600">
             Already have an account?{" "}
             <Link href="/signin" className="font-medium text-orange-600 hover:text-orange-500 transition-colors">
