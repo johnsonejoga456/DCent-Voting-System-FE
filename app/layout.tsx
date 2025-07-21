@@ -1,33 +1,26 @@
-import './globals.css';
-import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/context/AuthContext';
-import WalletProvider from '@/lib/wallet';
-const inter = Inter({ subsets: ['latin'] });
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import WalletProvider from "@/lib/wallet";
+import { AuthProvider } from "@/context/AuthContext";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-export const metadata = {
-  title: 'DCent Voting App',
-  description: 'Secure decentralized voting system with Email, Google, Wallet Login',
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "DCent Voting System",
+  description: "A decentralized voting system",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head>
-        <script
-          src="https://accounts.google.com/gsi/client"
-          async
-          defer
-        ></script>
-      </head>
-      <body className={`${inter.className} bg-gray-100 min-h-screen`}>
-        {/* ✅ Wrap WalletProvider outside AuthProvider */}
+      <body className={inter.className}>
         <WalletProvider>
           <AuthProvider>
             {children}
+            <ToastContainer position="top-right" autoClose={5000} hideProgressBar={false} />
           </AuthProvider>
         </WalletProvider>
       </body>

@@ -1,54 +1,51 @@
 "use client";
 
-import { ethers } from "ethers";
-import { useAuth } from "./useAuth";
+import { useAuthContext } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useConnect, useSignMessage, useAccount } from "wagmi";
+import axios from "axios";
+import { toast } from "react-toastify";
 
-export async function walletLogin() {
-  const { setUser } = useAuth();
+export const useWalletLogin = () => {
+  const { walletLogin } = useAuthContext();
   const router = useRouter();
+  const { connect, connectors, error: connectError } = useConnect();
+  const { signMessageAsync } = useSignMessage();
+  const { address } = useAccount();
 
-  if (!window.ethereum) {
-    alert("MetaMask not detected. Please install MetaMask to continue.");
-    return;
-  }
+  const login = async () => {
+    try {
+      // Connect wallet
+      if (!address) {
+        const connector = connectors.find((c) => c.id === "metaMask") || connectors[0];
+        await connect({ connector });
+        if (connectError) throw new Error("Failed to connect wallet");
+      }
 
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const address = await signer.getAddress();
+      if (!address) throw new Error("No wallet address found");
 
-  // Step 1: Get nonce from backend
-  const nonceRes = await fetch("https://api.dvs.dyung.me/auth/nonce", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address }),
-  });
-  const nonceData = await nonceRes.json();
-  const nonce = nonceData.nonce || "Sign this message to login to DVS";
+      // Request nonce
+      const nonceRes = await axios.post("https://api.dvs.dyung.me/auth/wallet/nonce", { address });
+      if (nonceRes.status !== 200 || !nonceRes.data.nonce) {
+        throw new Error("Failed to retrieve nonce");
+      }
+      const nonce = nonceRes.data.nonce;
 
-  // Step 2: User signs nonce
-  const signature = await signer.signMessage(nonce);
+      // Sign nonce
+      const signature = await signMessageAsync({ message: nonce });
+      if (!signature) throw new Error("Signature rejected");
 
-  // Step 3: Send signature to backend for verification
-  const loginRes = await fetch("https://api.dvs.dyung.me/auth/wallet-login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ address, signature }),
-  });
+      // Perform wallet login
+      await walletLogin(address, signature);
+      router.push("/dashboard");
+    } catch (error: any) {
+      if (error.response?.data?.message === "Wallet not registered") {
+        toast.error("This wallet is not registered. Please link your wallet in your dashboard.");
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Wallet login failed");
+      }
+    }
+  };
 
-  const data = await loginRes.json();
-
-  if (loginRes.ok && data.status === 200 && data.data.access_token) {
-    localStorage.setItem("access_token", data.data.access_token);
-
-    setUser({
-      id: data.data.user.id,
-      username: data.data.user.username,
-      email: data.data.user.email,
-    });
-
-    router.push("/dashboard");
-  } else {
-    throw new Error(data.message || "Wallet login failed");
-  }
-}
+  return { login };
+};
