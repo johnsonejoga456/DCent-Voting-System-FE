@@ -22,7 +22,7 @@ export default function DashboardPage() {
     try {
       if (!address) {
         const connector = connectors.find((c) => c.id === "metaMask") || connectors[0];
-        await connect({ connector });
+        connect({ connector });
         if (connectError) throw new Error("Failed to connect wallet");
       }
 
@@ -39,8 +39,14 @@ export default function DashboardPage() {
 
       await connectWallet(address, signature);
       toast.success("Wallet connected successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || error.message || "Wallet connection failed");
+    } catch (error: unknown) {
+      let errorMessage = "Wallet connection failed"
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        errorMessage = error.response?.data?.message;
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
     } finally {
       setIsConnecting(false);
     }

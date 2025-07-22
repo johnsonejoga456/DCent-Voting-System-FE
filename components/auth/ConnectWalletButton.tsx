@@ -15,9 +15,9 @@ export default function ConnectWalletButton() {
     setIsConnecting(true);
     try {
       await login();
-    } catch (error) {
+    }/* catch (error) {
       // Errors are handled in useWalletLogin via toast
-    } finally {
+    } */finally {
       setIsConnecting(false);
     }
   };

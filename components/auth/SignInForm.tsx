@@ -1,10 +1,12 @@
 "use client";
+
 import { useState } from "react";
 import type React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { LogIn, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import axios from "axios"
 
 export default function SignInForm() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -13,7 +15,7 @@ export default function SignInForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -21,8 +23,14 @@ export default function SignInForm() {
     try {
       await login(form.email, form.password);
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (err: unknown) {
+      let errorMessage = "Login failed. Please try again.";
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -140,7 +148,7 @@ export default function SignInForm() {
           </div>
 
           <p className="text-center text-sm text-gray-600">
-            Don't have an account?{" "}
+          {`Don't have an account?`}{" "}
             <Link
               href="/signup"
               className="font-medium text-orange-600 hover:text-orange-500 transition-colors"

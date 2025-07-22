@@ -18,7 +18,7 @@ export const useWalletLogin = () => {
       // Connect wallet
       if (!address) {
         const connector = connectors.find((c) => c.id === "metaMask") || connectors[0];
-        await connect({ connector });
+        connect({ connector });
         if (connectError) throw new Error("Failed to connect wallet");
       }
 

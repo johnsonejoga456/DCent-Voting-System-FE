@@ -1,10 +1,16 @@
 "use client";
-import { useEffect, useRef } from "react";
+
+import { useCallback, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function GoogleLoginButton() {
   const divRef = useRef<HTMLDivElement>(null);
   const { googleLogin } = useAuth();
+
+  const handleCredentialResponse = useCallback((response: google.accounts.id.CredentialResponse) => {
+    const idToken = response.credential;
+    googleLogin(idToken); // call AuthContext method to send to backend (later)
+  }, [googleLogin]);
 
   useEffect(() => {
     if (!window.google || !divRef.current) return;
@@ -19,12 +25,8 @@ export default function GoogleLoginButton() {
       size: "large",
       width: "300",
     });
-  }, []);
+  }, [handleCredentialResponse]);
 
-  const handleCredentialResponse = (response: any) => {
-    const idToken = response.credential;
-    googleLogin(idToken); // call AuthContext method to send to backend (later)
-  };
 
   return <div ref={divRef} className="flex justify-center"></div>;
 }
