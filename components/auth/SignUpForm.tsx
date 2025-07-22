@@ -8,19 +8,26 @@ import { User, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import ConnectWalletButton from "@/components/auth/ConnectWalletButton";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 export default function SignUpForm() {
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const { signup, loading } = useAuthContext();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       await signup(form.username, form.email, form.password);
       router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "Signup failed. Please try again.");
+    } catch (err: unknown) {
+      let errorMessage = "Signup failed. Please try again.";
+      if (axios.isAxiosError(err) && err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      toast.error(errorMessage);
     }
   };
 
