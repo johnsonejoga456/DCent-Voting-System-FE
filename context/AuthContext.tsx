@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
 interface User {
   id: string;
@@ -30,17 +31,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.dvs.dyung.me";
 
   useEffect(() => {
     const fetchUser = async () => {
       const token = localStorage.getItem("access_token");
       if (!token) {
         setLoading(false);
+        router.push("/login");
         return;
       }
 
       try {
-        const res = await axios.get("https://api.dvs.dyung.me/users", {
+        const res = await axios.get(`${apiUrl}/users`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -57,42 +60,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.error("Fetch user failed:", res.data.message || "Unknown error");
           localStorage.removeItem("access_token");
           setUser(null);
+          router.push("/login");
         }
       } catch (error: any) {
-        console.error("Hydrate user error:", error.response?.data || error.message);
+        console.error("Hydrate user error:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
         localStorage.removeItem("access_token");
         setUser(null);
+        router.push("/login");
       } finally {
         setLoading(false);
       }
     };
 
     fetchUser();
-  }, []);
+  }, [apiUrl, router]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
       console.log("Login request payload:", { email, password });
-      const res = await axios.post("https://api.dvs.dyung.me/auth/login", { email, password });
+      const res = await axios.post(`${apiUrl}/auth/login`, { email, password });
       console.log("Login response:", res.data);
 
       if (res.status !== 200 || !res.data.data || !res.data.data.access_token) {
         throw new Error(res.data.message || "Login failed");
       }
 
-      const { user, access_token } = res.data.data;
+      const { user: userData, access_token } = res.data.data;
       setUser({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        walletAddress: user.walletAddress,
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        walletAddress: userData.walletAddress,
       });
       localStorage.setItem("access_token", access_token);
       router.push("/dashboard");
+      toast.success("Login successful");
     } catch (error: any) {
-      console.error("Login error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Login failed");
+      console.error("Login error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      toast.error(error.response?.data?.message || "Login failed");
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -102,25 +117,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       console.log("Signup request payload:", { username, email, password });
-      const res = await axios.post("https://api.dvs.dyung.me/auth/signup", { username, email, password });
+      const res = await axios.post(`${apiUrl}/auth/signup`, { username, email, password });
       console.log("Signup response:", res.data);
 
       if (res.status !== 200 || !res.data.data) {
         throw new Error(res.data.message || "Signup failed");
       }
 
-      const { user, access_token } = res.data.data;
+      const { user: userData, access_token } = res.data.data;
       setUser({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        walletAddress: user.walletAddress,
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        walletAddress: userData.walletAddress,
       });
       localStorage.setItem("access_token", access_token);
       router.push("/dashboard");
+      toast.success("Signup successful");
     } catch (error: any) {
-      console.error("Signup error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Signup failed");
+      console.error("Signup error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      toast.error(error.response?.data?.message || "Signup failed");
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -130,24 +151,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem("access_token");
     router.push("/login");
+    toast.success("Logged out successfully");
   };
 
   const googleLogin = async (idToken: string) => {
     setLoading(true);
     try {
-      // Replace with actual Google login API call
-      console.log("Google login idToken:", idToken);
-      await new Promise((res) => setTimeout(res, 1000)); // Mock API call
+      console.log("Google login request payload:", { idToken });
+      const res = await axios.post(`${apiUrl}/auth/google`, { idToken });
+      console.log("Google login response:", res.data);
+
+      if (res.status !== 200 || !res.data.data || !res.data.data.access_token) {
+        throw new Error(res.data.message || "Google login failed");
+      }
+
+      const { user: userData, access_token } = res.data.data;
       setUser({
-        id: "mock-google-id",
-        username: "Google User",
-        email: "googleuser@example.com",
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        walletAddress: userData.walletAddress,
       });
-      localStorage.setItem("access_token", "mock-google-token");
+      localStorage.setItem("access_token", access_token);
       router.push("/dashboard");
-    } catch (error) {
-      console.error("Google login error:", error);
-      throw new Error("Google login failed");
+      toast.success("Google login successful");
+    } catch (error: any) {
+      console.error("Google login error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      toast.error(error.response?.data?.message || "Google login failed");
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -157,59 +192,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       console.log("Wallet login request payload:", { address, signature });
-      const res = await axios.post("https://api.dvs.dyung.me/auth/wallet-login", { address, signature });
+      const res = await axios.post(`${apiUrl}/auth/wallet-login`, { address, signature });
       console.log("Wallet login response:", res.data);
 
       if (res.status !== 200 || !res.data.data || !res.data.data.access_token) {
         throw new Error(res.data.message || "Wallet login failed");
       }
 
-      const { user, access_token } = res.data.data;
+      const { user: userData, access_token } = res.data.data;
       setUser({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        walletAddress: user.walletAddress || address,
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        walletAddress: userData.walletAddress || address,
       });
       localStorage.setItem("access_token", access_token);
       router.push("/dashboard");
+      toast.success("Wallet login successful");
     } catch (error: any) {
-      console.error("Wallet login error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Wallet login failed");
+      console.error("Wallet login error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      toast.error(error.response?.data?.message || "Wallet login failed");
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   const connectWallet = async (address: string, signature: string) => {
-    setLoading(true);
-    try {
-      const token = localStorage.getItem("access_token");
-      if (!token) throw new Error("Please sign in to connect your wallet");
-
-      console.log("Connect wallet request payload:", { address, signature });
-      const res = await axios.post(
-        "https://api.dvs.dyung.me/users/wallet/connect",
-        { address, signature },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      console.log("Connect wallet response:", res.data);
-
-      if (res.status !== 200 || res.data.status !== 200) {
-        throw new Error(res.data.message || "Wallet connection failed");
-      }
-
-      setUser((prev) => ({
-        ...prev!,
-        walletAddress: res.data.data.user?.walletAddress || address,
-      }));
-    } catch (error: any) {
-      console.error("Connect wallet error:", error.response?.data || error.message);
-      throw new Error(error.response?.data?.message || "Wallet connection failed");
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      throw new Error("No access token found. Please sign in first.");
     }
-  };
+
+    console.log("Connect wallet request payload:", { address, signature, token });
+    const res = await axios.post(
+      `${apiUrl}/users/wallet/connect`,
+      { address, signature },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    console.log("Connect wallet response:", res.data);
+    if (res.status === 200 && res.data.status === 200 && res.data.data) {
+      const userData = res.data.data;
+      setUser({
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        walletAddress: userData.walletAddress || address,
+      });
+      toast.success("Wallet connected successfully");
+    } else {
+      console.warn("Invalid connect wallet response:", res.data);
+      throw new Error(res.data.message || "Failed to connect wallet");
+    }
+  } catch (error: any) {
+    console.error("Connect wallet error:", {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+    });
+    toast.error(error.response?.data?.message || "Wallet connection failed");
+    throw error;
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <AuthContext.Provider
@@ -233,6 +286,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuthContext must be used within AuthProvider");
+  if (!context) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  }
   return context;
 };

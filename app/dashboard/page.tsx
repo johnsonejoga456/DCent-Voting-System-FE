@@ -1,56 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useAuthContext } from "@/context/AuthContext";
-import { useConnect, useSignMessage, useAccount } from "wagmi";
-import axios from "axios";
+import ConnectWalletButton from "@/components/auth/ConnectWalletButton";
 import { toast } from "react-toastify";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { Loader2 } from "lucide-react";
 
 export default function DashboardPage() {
   useProtectedRoute();
-  const { user, connectWallet, loading, logout } = useAuthContext();
-  const { connect, connectors, error: connectError } = useConnect();
-  const { signMessageAsync } = useSignMessage();
-  const { address } = useAccount();
-  const [isConnecting, setIsConnecting] = useState(false);
-
-  const handleConnectWallet = async () => {
-    setIsConnecting(true);
-    try {
-      if (!address) {
-        const connector = connectors.find((c) => c.id === "metaMask") || connectors[0];
-        connect({ connector });
-        if (connectError) throw new Error("Failed to connect wallet");
-      }
-
-      if (!address) throw new Error("No wallet address found");
-
-      const nonceRes = await axios.post("https://api.dvs.dyung.me/auth/wallet/nonce", { address });
-      if (nonceRes.status !== 200 || !nonceRes.data.nonce) {
-        throw new Error("Failed to retrieve nonce");
-      }
-      const nonce = nonceRes.data.nonce;
-
-      const signature = await signMessageAsync({ message: nonce });
-      if (!signature) throw new Error("Signature rejected");
-
-      await connectWallet(address, signature);
-      toast.success("Wallet connected successfully");
-    } catch (error: unknown) {
-      let errorMessage = "Wallet connection failed"
-      if (axios.isAxiosError(error) && error.response?.data?.message) {
-        errorMessage = error.response?.data?.message;
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      toast.error(errorMessage);
-    } finally {
-      setIsConnecting(false);
-    }
-  };
+  const { user, logout } = useAuthContext();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 via-white to-blue-50 p-4">
@@ -67,56 +24,7 @@ export default function DashboardPage() {
             <strong>Wallet Address:</strong> {user?.walletAddress ?? "Not connected"}
           </p>
         </div>
-        {!user?.walletAddress && (
-          <ConnectButton.Custom>
-            {({ account, chain, openConnectModal, mounted }) => {
-              if (!mounted || !account || !chain) {
-                return (
-                  <button
-                    onClick={openConnectModal}
-                    disabled={isConnecting || loading}
-                    className="w-full h-12 border border-gray-300 hover:bg-gray-50 flex items-center justify-center rounded-xl transition-colors text-gray-700 font-semibold space-x-2"
-                  >
-                    {isConnecting || loading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Connecting Wallet...</span>
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
-                          <path d="M27 12h-7v2h7v6h-7v2h7c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zM20 18h-8v2h8v-2zM4 20h7v-2H4v-6h7v-2H4c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2z" />
-                        </svg>
-                        <span>Connect Wallet</span>
-                      </>
-                    )}
-                  </button>
-                );
-              }
-              return (
-                <button
-                  onClick={handleConnectWallet}
-                  disabled={isConnecting || loading}
-                  className="w-full h-12 border border-gray-300 hover:bg-gray-50 flex items-center justify-center rounded-xl transition-colors text-gray-700 font-semibold space-x-2"
-                >
-                  {isConnecting || loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Connecting Wallet...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
-                        <path d="M27 12h-7v2h7v6h-7v2h7c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zM20 18h-8v2h8v-2zM4 20h7v-2H4v-6h7v-2H4c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2z" />
-                      </svg>
-                      <span>Connect Wallet ({account.displayName})</span>
-                    </>
-                  )}
-                </button>
-              );
-            }}
-          </ConnectButton.Custom>
-        )}
+        {!user?.walletAddress && <ConnectWalletButton mode="connect" />}
         <button
           onClick={() => {
             logout();
