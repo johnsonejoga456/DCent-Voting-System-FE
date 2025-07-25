@@ -3,7 +3,6 @@
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
 import { useAuthContext } from "@/context/AuthContext";
 import ConnectWalletButton from "@/components/auth/ConnectWalletButton";
-import { toast } from "react-toastify";
 
 export default function DashboardPage() {
   useProtectedRoute();

@@ -9,7 +9,11 @@ import { toast } from "react-toastify";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Loader2 } from "lucide-react";
 
-export default function ConnectWalletButton({ mode = "login" }: { mode?: "login" | "connect" }) {
+export default function ConnectWalletButton({
+  mode = "login",
+}: {
+  mode?: "login" | "connect";
+}) {
   const { walletLogin, connectWallet, loading } = useAuthContext();
   const { signMessageAsync } = useSignMessage();
   const { address, isConnected } = useAccount();
@@ -42,12 +46,19 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
         throw new Error("NEXT_PUBLIC_API_URL is not set in .env");
       }
 
-      console.log("Proceeding with wallet authentication:", { isConnected, address, chainId, mode });
+      console.log("Proceeding with wallet authentication:", {
+        isConnected,
+        address,
+        chainId,
+        mode,
+      });
 
       const checksumAddress = getAddress(address);
       console.log("Checksummed address:", checksumAddress);
 
-      const nonceRes = await axios.post(`${apiUrl}/auth/nonce`, { address: checksumAddress });
+      const nonceRes = await axios.post(`${apiUrl}/auth/nonce`, {
+        address: checksumAddress,
+      });
       console.log("Nonce response:", nonceRes.data);
 
       if (nonceRes.status !== 200 || !nonceRes.data.data?.nonce) {
@@ -69,19 +80,39 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
         await connectWallet(checksumAddress, signature);
       }
 
-      toast.success(`Wallet ${mode === "login" ? "login" : "connection"} successful`);
-    } catch (error: any) {
-      console.error(`${mode === "login" ? "Wallet login" : "Wallet connect"} error:`, {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack,
-      });
+      toast.success(
+        `Wallet ${mode === "login" ? "login" : "connection"} successful`
+      );
+    } catch (error: unknown) {
+      const err =
+        error as
+        | {
+            message?: string;
+            response?: { data?: { message?: string }; status?: number };
+            stack?: string;
+          }
+        | undefined;
 
-      if (error.response?.data?.message === "Wallet not registered") {
-        toast.error("This wallet is not registered. Please link your wallet in your dashboard.");
+      console.error(
+        `${mode === "login" ? "Wallet login" : "Wallet connect"} error:`,
+        {
+          message: err?.message,
+          response: err?.response?.data,
+          status: err?.response?.status,
+          stack: err?.stack,
+        }
+      );
+
+      if (err?.response?.data?.message === "Wallet not registered") {
+        toast.error(
+          "This wallet is not registered. Please link your wallet in your dashboard."
+        );
       } else {
-        toast.error(error.response?.data?.message || error.message || `${mode === "login" ? "Wallet login" : "Wallet connection"} failed`);
+        toast.error(
+          err?.response?.data?.message ||
+            err?.message ||
+            `${mode === "login" ? "Wallet login" : "Wallet connection"} failed`
+        );
       }
     } finally {
       setIsConnecting(false);
@@ -112,10 +143,16 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
                 </>
               ) : (
                 <>
-                  <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
+                  <svg
+                    className="w-5 h-5"
+                    viewBox="0 0 32 32"
+                    fill="currentColor"
+                  >
                     <path d="M27 12h-7v2h7v6h-7v2h7c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zM20 18h-8v2h8v-2zM4 20h7v-2H4v-6h7v-2H4c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2z" />
                   </svg>
-                  <span>{mode === "login" ? "Sign in with Wallet" : "Connect Wallet"}</span>
+                  <span>
+                    {mode === "login" ? "Sign in with Wallet" : "Connect Wallet"}
+                  </span>
                 </>
               )}
             </button>
@@ -134,11 +171,18 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
               </>
             ) : (
               <>
-                <svg className="w-5 h-5" viewBox="0 0 32 32" fill="currentColor">
+                <svg
+                  className="w-5 h-5"
+                  viewBox="0 0 32 32"
+                  fill="currentColor"
+                >
                   <path d="M27 12h-7v2h7v6h-7v2h7c1.1 0 2-.9 2-2v-6c0-1.1-.9-2-2-2zM20 18h-8v2h8v-2zM4 20h7v-2H4v-6h7v-2H4c-1.1 0-2 .9-2 2v6c0 1.1.9 2 2 2z" />
                 </svg>
                 <span>
-                  {mode === "login" ? "Sign in with Wallet" : "Connect Wallet"} ({account.displayName})
+                  {mode === "login"
+                    ? "Sign in with Wallet"
+                    : "Connect Wallet"}{" "}
+                  ({account.displayName})
                 </span>
               </>
             )}

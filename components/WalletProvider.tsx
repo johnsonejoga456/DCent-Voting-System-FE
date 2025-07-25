@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { WagmiProvider, http } from "wagmi";
+import { WagmiProvider, http, Config } from "wagmi";
 import { mainnet, sepolia } from "wagmi/chains";
 import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ const queryClient = new QueryClient();
 
 export default function WalletProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<Config | null>(null);
 
   useEffect(() => {
     const projectId =
