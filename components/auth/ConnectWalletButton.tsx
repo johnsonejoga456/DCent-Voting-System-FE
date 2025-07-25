@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useWalletLogin } from "@/hooks/useWalletLogin";
 import { useAuthContext } from "@/context/AuthContext";
-import { useConnect, useSignMessage, useAccount, useChainId } from "wagmi";
+import { useSignMessage, useAccount, useChainId } from "wagmi";
 import { getAddress } from "viem";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -12,10 +11,8 @@ import { Loader2 } from "lucide-react";
 
 export default function ConnectWalletButton({ mode = "login" }: { mode?: "login" | "connect" }) {
   const { walletLogin, connectWallet, loading } = useAuthContext();
-  const { login } = useWalletLogin();
-  const { connect, connectors, error: connectError } = useConnect();
   const { signMessageAsync } = useSignMessage();
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isClient, setIsClient] = useState(false);
@@ -33,6 +30,11 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
       return;
     }
 
+    if (!isConnected || !address || !chainId) {
+      toast.error("Please connect your wallet first before proceeding.");
+      return;
+    }
+
     setIsConnecting(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -40,44 +42,11 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
         throw new Error("NEXT_PUBLIC_API_URL is not set in .env");
       }
 
-      if (mode === "login") {
-        await login();
-        return;
-      }
-
-      // Connect wallet
-      if (!address || !chainId) {
-        const connector = connectors.find((c) => c.id === "metaMask") || connectors[0];
-        if (!connector) {
-          throw new Error("No valid connectors available");
-        }
-        console.log("🔌 Connecting wallet via:", connector.name);
-        console.log("Available connectors:", connectors.map(c => ({ id: c.id, name: c.name })));
-        try {
-          await connect({ connector });
-        } catch (err: any) {
-          console.error("Connector error:", {
-            message: err.message,
-            stack: err.stack,
-            connector: connector.name,
-          });
-          throw new Error("Failed to connect wallet: " + (err.message || "Unknown error"));
-        }
-        if (connectError) {
-          console.error("Connect error:", connectError);
-          throw new Error("Failed to connect wallet: " + (connectError.message || "Unknown error"));
-        }
-      }
-
-      if (!address) throw new Error("No wallet address found");
-      if (!chainId) throw new Error("No chain detected after connection");
-
-      console.log("Connected chain ID:", chainId);
+      console.log("Proceeding with wallet authentication:", { isConnected, address, chainId, mode });
 
       const checksumAddress = getAddress(address);
       console.log("Checksummed address:", checksumAddress);
 
-      console.log("Requesting nonce for address:", checksumAddress);
       const nonceRes = await axios.post(`${apiUrl}/auth/nonce`, { address: checksumAddress });
       console.log("Nonce response:", nonceRes.data);
 
@@ -94,15 +63,21 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
 
       if (!signature) throw new Error("Signature rejected");
 
-      console.log("Attempting wallet connect with signature...");
-      await connectWallet(checksumAddress, signature);
-      toast.success("Wallet connected successfully");
+      if (mode === "login") {
+        await walletLogin(checksumAddress, signature);
+      } else {
+        await connectWallet(checksumAddress, signature);
+      }
+
+      toast.success(`Wallet ${mode === "login" ? "login" : "connection"} successful`);
     } catch (error: any) {
       console.error(`${mode === "login" ? "Wallet login" : "Wallet connect"} error:`, {
         message: error.message,
         response: error.response?.data,
         status: error.response?.status,
+        stack: error.stack,
       });
+
       if (error.response?.data?.message === "Wallet not registered") {
         toast.error("This wallet is not registered. Please link your wallet in your dashboard.");
       } else {
@@ -120,7 +95,10 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
   return (
     <ConnectButton.Custom>
       {({ account, chain: connectedChain, openConnectModal, mounted }) => {
-        if (!mounted || !account || !connectedChain) {
+        if (!mounted) {
+          return null;
+        }
+        if (!isConnected || !account || !connectedChain) {
           return (
             <button
               onClick={openConnectModal}
@@ -152,7 +130,7 @@ export default function ConnectWalletButton({ mode = "login" }: { mode?: "login"
             {isConnecting || loading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Connecting Wallet...</span>
+                <span>Processing...</span>
               </>
             ) : (
               <>

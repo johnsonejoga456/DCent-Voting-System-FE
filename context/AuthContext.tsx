@@ -227,40 +227,44 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   try {
     const token = localStorage.getItem("access_token");
     if (!token) {
-      throw new Error("No access token found. Please sign in first.");
+      toast.error("No access token found. Please sign in first.");
+      return;
     }
 
     console.log("Connect wallet request payload:", { address, signature, token });
-    const res = await axios.post(
-      `${apiUrl}/users/wallet/connect`,
-      { address, signature },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    console.log("Connect wallet response:", res.data);
-    if (res.status === 200 && res.data.status === 200 && res.data.data) {
-      const userData = res.data.data;
-      setUser({
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        walletAddress: userData.walletAddress || address,
+      const res = await axios.post(
+        `${apiUrl}/users/wallet/connect`,
+        { address, signature },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log("Connect wallet response:", res.data);
+
+      const userData = res.data?.data; // backend returns user here directly
+
+      if (res.status === 200 && res.data.status === 200 && userData) {
+        setUser({
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+          walletAddress: userData.walletAddress || address,
+        });
+        toast.success("Wallet connected successfully");
+      } else {
+        const message = res.data?.message || "Failed to connect wallet";
+        console.warn("Connect wallet failed:", message, res.data);
+        toast.error(message);
+        return;
+      }
+    } catch (error: any) {
+      console.error("Connect wallet error:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
       });
-      toast.success("Wallet connected successfully");
-    } else {
-      console.warn("Invalid connect wallet response:", res.data);
-      throw new Error(res.data.message || "Failed to connect wallet");
+      toast.error(error.response?.data?.message || error.message || "Wallet connection failed");
+    } finally {
+      setLoading(false);
     }
-  } catch (error: any) {
-    console.error("Connect wallet error:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-    });
-    toast.error(error.response?.data?.message || "Wallet connection failed");
-    throw error;
-  } finally {
-    setLoading(false);
-  }
 };
 
 

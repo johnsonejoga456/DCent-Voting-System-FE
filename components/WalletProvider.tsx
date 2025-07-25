@@ -1,11 +1,11 @@
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
-import { WagmiProvider, createConfig, http } from "wagmi";
+import { WagmiProvider, http } from "wagmi";
 import { mainnet, sepolia } from "wagmi/chains";
-import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { walletConnect, injected, metaMask } from "wagmi/connectors";
+import '@rainbow-me/rainbowkit/styles.css';
 
 // Create QueryClient for React Query
 const queryClient = new QueryClient();
@@ -19,21 +19,10 @@ export default function WalletProvider({ children }: { children: ReactNode }) {
       process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ||
       "006afcb2aec067de1324e26a4074d380";
 
-    const wagmiConfig = createConfig({
+    const wagmiConfig = getDefaultConfig({
+      appName: "DVS App",
+      projectId,
       chains: [mainnet, sepolia],
-      connectors: [
-        metaMask(),
-        injected(),
-        walletConnect({
-          projectId,
-          metadata: {
-            name: "DVS App",
-            description: "Decentralized Voting System",
-            url: "https://dvs.dyung.me",
-            icons: ["https://dvs.dyung.me/icon.png"],
-          },
-        }),
-      ],
       transports: {
         [mainnet.id]: http(),
         [sepolia.id]: http(),
@@ -44,12 +33,14 @@ export default function WalletProvider({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
-  if (!mounted || !config) return null; // Prevent Wagmi from initializing during SSR
+  if (!mounted || !config) return null;
 
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider modalSize="compact">{children}</RainbowKitProvider>
+        <RainbowKitProvider modalSize="compact" initialChain={sepolia}>
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
