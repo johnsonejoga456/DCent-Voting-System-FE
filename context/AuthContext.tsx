@@ -223,37 +223,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const connectWallet = async (address: string, signature: string) => {
-  setLoading(true);
-  try {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      toast.error("No access token found. Please sign in first.");
-      return;
-    }
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        toast.error("No access token found. Please sign in first.");
+        return;
+      }
 
-    console.log("Connect wallet request payload:", { address, signature, token });
+      console.log("Connect wallet request payload:", { address, signature, token });
+
       const res = await axios.post(
         `${apiUrl}/users/wallet/connect`,
         { address, signature },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      const userData = res.data?.data;
+      const message = res.data?.message || "Failed to connect wallet";
+
       console.log("Connect wallet response:", res.data);
 
-      const userData = res.data?.data; // backend returns user here directly
+      const isSuccess =
+        res.status === 200 &&
+        res.data.status === 200 &&
+        (userData || message === "Wallet connected successfully");
 
-      if (res.status === 200 && res.data.status === 200 && userData) {
-        setUser({
-          id: userData.id,
-          username: userData.username,
-          email: userData.email,
-          walletAddress: userData.walletAddress || address,
-        });
-        toast.success("Wallet connected successfully");
+      if (isSuccess) {
+        setUser(prev => ({
+          id: userData?.id ?? prev?.id ?? "unknown",
+          username: userData?.username ?? prev?.username ?? "Anonymous",
+          email: userData?.email ?? prev?.email ?? "unknown@example.com",
+          walletAddress: userData?.walletAddress ?? address,
+        }));
+        toast.success(message);
       } else {
-        const message = res.data?.message || "Failed to connect wallet";
-        console.warn("Connect wallet failed:", message, res.data);
+        console.warn("Connect wallet condition not met:", { res });
         toast.error(message);
-        return;
       }
     } catch (error: any) {
       console.error("Connect wallet error:", {
@@ -265,7 +271,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-};
+  };
+
+
+
 
 
   return (

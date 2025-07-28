@@ -36,7 +36,7 @@ export const useWalletLogin = () => {
       // Connect wallet if not connected
       if (!isConnected || !address) {
         const connector = connectors.find((c) => c.id === "metaMask") || connectors[0];
-        console.log("➡️ Connecting wallet via:", connector.name);
+        console.log("Connecting wallet via:", connector.name);
         await connect({ connector });
         if (connectError) throw new Error("Failed to connect wallet");
       }
@@ -45,12 +45,12 @@ export const useWalletLogin = () => {
 
       // Normalize address to checksum format
       const checksumAddress = getAddress(address);
-      console.log("➡️ Checksummed address:", checksumAddress);
+      console.log("Checksummed address:", checksumAddress);
 
       // Request nonce
-      console.log("➡️ Requesting nonce for address:", checksumAddress);
+      console.log("Requesting nonce for address:", checksumAddress);
       const nonceRes = await axios.post(`${apiUrl}/auth/nonce`, { address: checksumAddress });
-      console.log("✅ Nonce response:", nonceRes.data);
+      console.log("Nonce response:", nonceRes.data);
 
       if (nonceRes.status !== 200 || !nonceRes.data.data?.nonce) {
         throw new Error(nonceRes.data.message || "Failed to retrieve nonce");
@@ -59,21 +59,21 @@ export const useWalletLogin = () => {
       const nonce = nonceRes.data.data.nonce;
       // Construct message as expected by backend
       const message = `Login to DVS with this one-time code: ${nonce}`;
-      console.log("➡️ Signing message:", message);
+      console.log("Signing message:", message);
 
       // Sign the message
       const signature = await signMessageAsync({ message });
-      console.log("✅ Signature obtained:", signature);
+      console.log("Signature obtained:", signature);
 
       if (!signature) throw new Error("Signature was rejected or missing after signing attempt.");
 
       // Perform wallet login
-      console.log("➡️ Attempting wallet login with signature...");
+      console.log("Attempting wallet login with signature...");
       await walletLogin(checksumAddress, signature);
       toast.success("Wallet login successful!");
       router.push("/dashboard");
     } catch (error: any) {
-      console.error("❌ Wallet login error:", {
+      console.error("Wallet login error:", {
         error,
         response: error.response,
         message: error.message,
